@@ -14,8 +14,12 @@
 #include <trajectory_router/trajectory_router_plugin.hpp>
 #include <autoware_planning_msgs/msg/lanelet_route.hpp>
 
+#include <thread>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 using HADMapBin = autoware_auto_mapping_msgs::msg::HADMapBin;
 using LongIntVec = std::vector<long int>;
+std::mutex m;
 
 class TrajectoryRouter : public rclcpp::Node
 {
@@ -31,7 +35,9 @@ public:
     pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>( "/localization/pose_estimator/pose", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackPose, this, std::placeholders::_1));
     sub_vector_map_ = create_subscription<HADMapBin>("/map/vector_map", rclcpp::QoS(1).transient_local(), std::bind(&TrajectoryRouter::callbackMap, this, std::placeholders::_1));
     route_pub_= create_publisher<autoware_planning_msgs::msg::LaneletRoute>("/planning/mission_planning/route", rclcpp::QoS{1}.transient_local());
-
+    subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+      "/perception/obstacle_segmentation/pointcloud", rclcpp::SensorDataQoS(),
+      std::bind(&TrajectoryRouter::pointcloud_callback, this, std::placeholders::_1));
     this->declare_parameter<LongIntVec>("available_lanelet_id", LongIntVec({}));
     available_lanelets = this->get_parameter("available_lanelet_id").as_integer_array();
     this->declare_parameter<LongIntVec>("desired_lane", LongIntVec({}));
@@ -96,16 +102,20 @@ public:
   int primitiveNum;
   bool pubState;
 
+  geometry_msgs::msg::Pose m_p;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
   rclcpp::Subscription<HADMapBin>::SharedPtr sub_vector_map_;
   rclcpp::Publisher<autoware_planning_msgs::msg::LaneletRoute>::SharedPtr route_pub_;
+
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subscription_;
 private:
   std::vector<LongIntVec> setPrimitiveVector(const LongIntVec& vec, size_t laneletNum)
   {
     std::vector<LongIntVec> return2DVec;
     return2DVec.reserve((vec.size() + laneletNum - 1) / laneletNum); 
     auto nowVec = vec.begin();
-    while (nowVec != vec.end()){
+    while (nowVec != vec.end())
+    {
       LongIntVec chunk;
       chunk.reserve(laneletNum);
       auto end = std::next(nowVec, laneletNum);
@@ -121,7 +131,8 @@ private:
     std::vector<std::vector<double>> return2DVec;
     return2DVec.reserve((vec.size() + laneletNum - 1) / laneletNum); 
     auto nowVec = vec.begin();
-    while (nowVec != vec.end()){
+    while (nowVec != vec.end())
+    {
       std::vector<double> chunk;
       chunk.reserve(laneletNum);
       auto end = std::next(nowVec, laneletNum);
@@ -131,11 +142,43 @@ private:
     }
     return return2DVec;
   }
+  void pointcloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) const
+  {
+    geometry_msgs::msg::Pose ego_p;
+    m.lock();
+    ego_p = m_p;
+    m.unlock();
+    sensor_msgs::PointCloud2ConstIterator<float> iter_x(*msg, "x");
+    sensor_msgs::PointCloud2ConstIterator<float> iter_y(*msg, "y");
+    sensor_msgs::PointCloud2ConstIterator<float> iter_z(*msg, "z");
 
+    for (size_t i = 0; i < msg->width * msg->height; ++i, ++iter_x, ++iter_y, ++iter_z) {
+      geometry_msgs::msg::Pose p;
+      p.position.x = *iter_x + ego_p.position.x;
+      p.position.y = *iter_y + ego_p.position.y; // 이걸로는 안됨, 로테이션이 안맞음
+      p.position.z = *iter_z + ego_p.position.z;
+      lanelet::ConstLanelets start_lanelets;
+      if (lanelet::utils::query::getCurrentLanelets(road_lanelets_, p, &start_lanelets)){
+        RCLCPP_WARN(get_logger(), "get lanlet id ");
+        // 현재의 문제점 차량의 ego pose가 추가되지 않음 -> ego pose만으로는 해결이 안댐
+        for (const auto & st_llt : start_lanelets){
+          // c = st_llt.id();
+          std::cout << "id" << st_llt.id() << std::endl;
+        }
+
+      }
+        // RCLCPP_WARN(get_logger(), "get lanelet id fault!");
+      // else
+
+      // RCLCPP_INFO(this->get_logger(), "Point %zu: x=%f, y=%f, z=%f", i, *iter_x, *iter_y, *iter_z);
+    }
+  }
   void callbackPose(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
     lanelet::ConstLanelets start_lanelets;
-
+    m.lock();
+    m_p = msg->pose;
+    m.unlock();
     if (currentLaneletId == INITLANELET) return;
 
     if (!lanelet::utils::query::getCurrentLanelets(road_lanelets_, msg->pose, &start_lanelets))
@@ -143,7 +186,7 @@ private:
 
     for (const auto & st_llt : start_lanelets){
       currentLaneletId = st_llt.id();
-      std::cout << "id" << currentLaneletId << std::endl;
+      // std::cout << "id" << currentLaneletId << std::endl;
     }
 
     long int cnt = INITCOUNT;

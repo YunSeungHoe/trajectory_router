@@ -13,9 +13,6 @@
 #include <trajectory_router/trajectory_route_handler.hpp>
 #include <trajectory_router/trajectory_router_plugin.hpp>
 #include <autoware_planning_msgs/msg/lanelet_route.hpp>
-#include <avante_msgs/msg/avante_flag_signal.hpp>
-#include <mutex>
-
 
 using HADMapBin = autoware_auto_mapping_msgs::msg::HADMapBin;
 using LongIntVec = std::vector<long int>;
@@ -30,7 +27,6 @@ public:
     lastLaneletId = INITLANELET;
     lastLaneletKey = INITKEY;
     curve = false;
-    pitstopFlag = false;
     curveCnt = INITCOUNT;
     curveNum = INITCOUNT;
     pubState = TrajectoryRouter::READY;
@@ -38,7 +34,6 @@ public:
     // CANSignal = TrajectoryRouter::READY;
 
     pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>( "/localization/pose_estimator/pose", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackPose, this, std::placeholders::_1));
-    signal_sub_ = create_subscription<avante_msgs::msg::AvanteFlagSignal>( "/avante_flag_signal", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackSignal, this, std::placeholders::_1));
     sub_vector_map_ = create_subscription<HADMapBin>("/map/vector_map", rclcpp::QoS(1).transient_local(), std::bind(&TrajectoryRouter::callbackMap, this, std::placeholders::_1));
     route_pub_= create_publisher<autoware_planning_msgs::msg::LaneletRoute>("/planning/mission_planning/route", rclcpp::QoS{1}.transient_local());
 
@@ -107,45 +102,6 @@ public:
     this->declare_parameter<double>("curve_2.orientaion.w", double());
     curve2_orientation_w = this->get_parameter("curve_2.orientaion.w").as_double();
 
-    // go 
-    this->declare_parameter<LongIntVec>("go_primitive", LongIntVec({}));
-    goPrimitives = this->get_parameter("go_primitive").as_integer_array();
-
-    this->declare_parameter<double>("go.position.x", double());
-    go_position_x = this->get_parameter("go.position.x").as_double();
-    this->declare_parameter<double>("go.position.y", double());
-    go_position_y = this->get_parameter("go.position.y").as_double();
-    this->declare_parameter<double>("go.position.z", double());
-    go_position_z = this->get_parameter("go.position.z").as_double();
-    this->declare_parameter<double>("go.orientaion.x", double());
-    go_orientation_x = this->get_parameter("go.orientaion.x").as_double();
-    this->declare_parameter<double>("go.orientaion.y", double());
-    go_orientation_y = this->get_parameter("go.orientaion.y").as_double();
-    this->declare_parameter<double>("go.orientaion.z", double());
-    go_orientation_z = this->get_parameter("go.orientaion.z").as_double();
-    this->declare_parameter<double>("go.orientaion.w", double());
-    go_orientation_w = this->get_parameter("go.orientaion.w").as_double();
-
-    //pit stop
-    this->declare_parameter<LongIntVec>("pitstop_primitive", LongIntVec({}));
-    pitstopPrimitives = this->get_parameter("pitstop_primitive").as_integer_array();
-    pitstopPrimitive2DVector = setPrimitiveVector(pitstopPrimitives, laneNum);
-
-    this->declare_parameter<std::vector<double>>("pitstop.position.x", std::vector<double>({}));
-    pitstop_position_x = this->get_parameter("pitstop.position.x").as_double_array();
-    this->declare_parameter<std::vector<double>>("pitstop.position.y", std::vector<double>({}));
-    pitstop_position_y = this->get_parameter("pitstop.position.y").as_double_array();
-    this->declare_parameter<double>("pitstop.position.z", double());
-    pitstop_position_z = this->get_parameter("pitstop.position.z").as_double();
-
-    this->declare_parameter<double>("pitstop.orientation.x", double());
-    pitstop_orientation_x = this->get_parameter("pitstop.orientation.x").as_double();
-    this->declare_parameter<double>("pitstop.orientation.y", double());
-    pitstop_orientation_y = this->get_parameter("pitstop.orientation.y").as_double();
-    this->declare_parameter<double>("pitstop.orientation.z", double());
-    pitstop_orientation_z = this->get_parameter("pitstop.orientation.z").as_double();
-    this->declare_parameter<double>("pitstop.orientation.w", double());
-    pitstop_orientation_w = this->get_parameter("pitstop.orientation.w").as_double();
   }
   lanelet::LaneletMapPtr TR_lanelet_map_ptr_;
   HADMapBin::ConstSharedPtr TR_map_ptr_;
@@ -155,16 +111,12 @@ public:
   autoware_planning_msgs::msg::LaneletSegment emptySegment;
   autoware_planning_msgs::msg::LaneletPrimitive primitive;
 
-  // avante_msgs::msg::AvanteFlagSignal receiveSignal;
-  std::mutex signalMutex;
-
   std::vector<std::vector<double>> position2D_x;
   std::vector<std::vector<double>> position2D_y;
   std::vector<LongIntVec> currentPrimitive2DVector;
   std::vector<LongIntVec> primitive2DVector;
   std::vector<LongIntVec> curvePrimitive2DVector_1;
   std::vector<LongIntVec> curvePrimitive2DVector_2;
-  std::vector<LongIntVec> pitstopPrimitive2DVector;
   std::vector<double> position_x;
   std::vector<double> position_y;
   std::vector<double> orientation_z;
@@ -173,14 +125,10 @@ public:
   std::vector<double> curve1_position_y;
   std::vector<double> curve2_position_x;
   std::vector<double> curve2_position_y;
-  std::vector<double> pitstop_position_x;
-  std::vector<double> pitstop_position_y;
   LongIntVec available_lanelets;
   LongIntVec desiredLane;
   LongIntVec curvePrimitives_1;
   LongIntVec curvePrimitives_2;
-  LongIntVec goPrimitives;
-  LongIntVec pitstopPrimitives;
   double position_z;
   double orientation_x;
   double orientation_y;
@@ -191,18 +139,6 @@ public:
   double curve1_orientation_w;
   double curve2_orientation_z;
   double curve2_orientation_w;
-  double go_position_x;
-  double go_position_y;
-  double go_position_z;
-  double go_orientation_x;
-  double go_orientation_y;
-  double go_orientation_z;
-  double go_orientation_w;
-  double pitstop_position_z;
-  double pitstop_orientation_x;
-  double pitstop_orientation_y;
-  double pitstop_orientation_z;
-  double pitstop_orientation_w;
   long int currentLaneletId;
   long int lastLaneletId;
   long int laneletKey;
@@ -217,11 +153,9 @@ public:
   // enum CANState {READY, GO, SLOWON, SLOWOFF, STOP, PITSTOP}
   PubState canState;
   bool curve;
-  bool pitstopFlag;
   // PubState CANSignal;
   
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
-  rclcpp::Subscription<avante_msgs::msg::AvanteFlagSignal>::SharedPtr signal_sub_;
   rclcpp::Subscription<HADMapBin>::SharedPtr sub_vector_map_;
   rclcpp::Publisher<autoware_planning_msgs::msg::LaneletRoute>::SharedPtr route_pub_;
 private:
@@ -258,41 +192,6 @@ private:
     return return2DVec;
   }
 
-  void callbackSignal(const avante_msgs::msg::AvanteFlagSignal msg)
-  {
-    signalMutex.lock();
-    switch (msg.signal)
-    {
-    case avante_msgs::msg::AvanteFlagSignal::READY:
-      canState = TrajectoryRouter::READY;
-      std::cout << "READY" << std::endl;
-      break;
-    case avante_msgs::msg::AvanteFlagSignal::GO:
-      canState = TrajectoryRouter::GO;
-      std::cout << "GO" << std::endl;
-      break;    
-    case avante_msgs::msg::AvanteFlagSignal::SLOW_ON:
-      canState = TrajectoryRouter::SLOWON;
-      std::cout << "SLOW_ON" << std::endl;
-      break;    
-    case avante_msgs::msg::AvanteFlagSignal::SLOW_OFF:
-      std::cout << "SLOW_OFF" << std::endl;
-      break;    
-    case avante_msgs::msg::AvanteFlagSignal::STOP:
-      canState = TrajectoryRouter::STOP;
-      std::cout << "STOP" << std::endl;
-      break;    
-    case avante_msgs::msg::AvanteFlagSignal::PIT_STOP:
-      canState = TrajectoryRouter::PITSTOP;
-      std::cout << "PIT_STOP" << std::endl;
-      break;    
-    default:
-      std::cout << "error" << std::endl;
-      break;
-    }
-    signalMutex.unlock();
-  }
-
   void callbackPose(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
     lanelet::ConstLanelets start_lanelets;
@@ -302,24 +201,25 @@ private:
     if (!lanelet::utils::query::getCurrentLanelets(road_lanelets_, msg->pose, &start_lanelets))
       RCLCPP_WARN(get_logger(), "get lanelet id fault!");
 
-    // 주도로의 lanelet id를 작게해서 획득할 필요가 있음
     for (const auto & st_llt : start_lanelets)
       currentLaneletId = st_llt.id();
 
     // Lanelet이 2개인 구간에서 디버깅 필요 
     // std::cout << "current lanelet ID: " << currentLaneletId << std::endl; 
-    signalMutex.lock();
+
     if (canState == TrajectoryRouter::STOP || canState == TrajectoryRouter::SLOWON)
     {
       curveCnt = INITCOUNT;
       curveNum = INITCOUNT;
       pubState = canState;
-      if (pubState == TrajectoryRouter::SLOWON) pubState = TrajectoryRouter::READY;
       for (const auto &lane : curvePrimitives_1)
       {
         if (currentLaneletId == lane)
         {
           // topic publish 
+          // 추가로 뱅크 구간이 2개이기 때문에 key 같은 것이 필요함 
+          // curveCnt // 차선 수  : 
+          // curveCnt % 차선수 : 
           curve = true;
           curveNum = FIRSTLANE;
           break;
@@ -342,19 +242,7 @@ private:
         }
       }
     }
-    if (canState == TrajectoryRouter::GO)
-    {
-      pubState = TrajectoryRouter::GO;
-      canState = TrajectoryRouter::READY;
-    }
-    if (canState == TrajectoryRouter::PITSTOP && !pitstopFlag)
-    {
-      pitstopFlag = true;
-      canState = TrajectoryRouter::READY;
-    }
-    signalMutex.unlock();
 
-    // 이걸 찾는 조건문도 switch 사용해야 하나? 
     long int cnt = INITCOUNT;
     for (const auto &lane_val : available_lanelets)
     {
@@ -363,19 +251,13 @@ private:
       {
         lastLaneletId = currentLaneletId;
         lastLaneletKey = laneletKey;
-        if (pitstopFlag && laneletKey == 4)
-        {
-          pubState = TrajectoryRouter::PITSTOP;
-          std::cout << "pubState is stop " << std::endl;
-        } 
-        else pubState = TrajectoryRouter::NORMAL;
+        pubState = TrajectoryRouter::NORMAL;
         currentPrimitive2DVector = setPrimitiveVector(primitive2DVector[laneletKey], laneNum);
         break;
       }
       cnt++;
     }
 
-    // 상태에 따른 적절한 경로 생성 
     switch (pubState)
     {
     case TrajectoryRouter::READY: break;
@@ -383,37 +265,24 @@ private:
     // NORMAL이 끝나면 READY 상태가 됨
     case TrajectoryRouter::NORMAL:
     {
-      long int row;
-      long int col;
-      
-      row = cnt/laneNum;
-      if (pitstopFlag)
-      {
-        col = THIRDLANEIDX;
-      }
-      else
-      {
-        col = desiredLane[laneletKey];        
-      }
-
       autoware_planning_msgs::msg::LaneletRoute route_msg_;
       route_msg_.header.stamp = this->get_clock()->now();
       route_msg_.header.frame_id = "map";
       route_msg_.start_pose = msg->pose;
 
-      route_msg_.goal_pose.position.x = position2D_x[row][col]; 
-      route_msg_.goal_pose.position.y = position2D_y[row][col]; 
+      route_msg_.goal_pose.position.x = position2D_x[cnt/laneNum][desiredLane[laneletKey]]; 
+      route_msg_.goal_pose.position.y = position2D_y[cnt/laneNum][desiredLane[laneletKey]]; 
       route_msg_.goal_pose.position.z = position_z;
         
       route_msg_.goal_pose.orientation.x = orientation_x;
       route_msg_.goal_pose.orientation.y = orientation_y;
-      route_msg_.goal_pose.orientation.z = orientation_z[row];  
-      route_msg_.goal_pose.orientation.w = orientation_w[row];
+      route_msg_.goal_pose.orientation.z = orientation_z[cnt/laneNum];  
+      route_msg_.goal_pose.orientation.w = orientation_w[cnt/laneNum];
 
       for (const auto &out_lane_id : currentPrimitive2DVector)
       {
         segment = emptySegment;
-        segment.preferred_primitive.id = out_lane_id[col];
+        segment.preferred_primitive.id = out_lane_id[desiredLane[laneletKey]];
         segment.preferred_primitive.primitive_type = "";
         for (const auto &in_lane_id : out_lane_id)
         {
@@ -432,41 +301,8 @@ private:
       std::cout << "NORMAL trajectory publish" << std::endl;
       break;
     }
-    // GO 이후에 정상 주행이 되도록
-    // 현재 1차로로 설계했지만 이후 3차로로 변경해야 함
     case TrajectoryRouter::GO:
-    {
-      autoware_planning_msgs::msg::LaneletRoute route_msg_;
-      route_msg_.header.stamp = this->get_clock()->now();
-      route_msg_.header.frame_id = "map";
-      route_msg_.start_pose = msg->pose;
-      
-      route_msg_.goal_pose.position.x = go_position_x; 
-      route_msg_.goal_pose.position.y = go_position_y; 
-      route_msg_.goal_pose.position.z = go_position_z;
-          
-      route_msg_.goal_pose.orientation.x = go_orientation_x;
-      route_msg_.goal_pose.orientation.y = go_orientation_y;
-      route_msg_.goal_pose.orientation.z = go_orientation_z;  
-      route_msg_.goal_pose.orientation.w = go_orientation_w;
-  
-      for (const auto &lane : goPrimitives)
-      {
-        segment = emptySegment;
-        segment.preferred_primitive.id = lane;
-        segment.preferred_primitive.primitive_type = "";
-        primitive.id = lane;
-        primitive.primitive_type = "lane";
-        segment.primitives.push_back(primitive);
-        route_msg_.segments.push_back(segment);
-      }
-      route_msg_.uuid.uuid = {209, 239, 15, 91, 197, 87, 68, 179, 62, 19, 3, 36, 111, 114, 35, 231};
-      route_pub_->publish(route_msg_);
-
-      pubState = TrajectoryRouter::READY;
-      std::cout << "GO trajectory publish" << std::endl;
       break;
-    }
     // STOP 상태는 ego 위치를 이용해 경로를 생성하지 않는 상태 
     // STOP 상태를 계속 유지
     // STOP인 경우에는 뱅크 끝까지 경로 생성 해야 함
@@ -552,43 +388,7 @@ private:
       break;
     }
     case TrajectoryRouter::PITSTOP:
-    {
-      if(!pitstopFlag) break;
-      autoware_planning_msgs::msg::LaneletRoute route_msg_;
-      route_msg_.header.stamp = this->get_clock()->now();
-      route_msg_.header.frame_id = "map";
-      route_msg_.start_pose = msg->pose;
-
-      route_msg_.goal_pose.position.x = pitstop_position_x[2]; 
-      route_msg_.goal_pose.position.y = pitstop_position_y[2]; 
-      route_msg_.goal_pose.position.z = pitstop_position_z;
-            
-      route_msg_.goal_pose.orientation.x = pitstop_orientation_x;
-      route_msg_.goal_pose.orientation.y = pitstop_orientation_y;
-      route_msg_.goal_pose.orientation.z = pitstop_orientation_z;  
-      route_msg_.goal_pose.orientation.w = pitstop_orientation_w;
-      
-      for (const auto &out_lane_id : pitstopPrimitive2DVector)
-      {
-        segment = emptySegment;
-        segment.preferred_primitive.id = out_lane_id[2];
-        segment.preferred_primitive.primitive_type = "";
-        for (const auto &in_lane_id : out_lane_id)
-        {
-          if (in_lane_id == NOLANELET) continue;
-          primitive.id = in_lane_id;
-          primitive.primitive_type = "lane";
-          segment.primitives.push_back(primitive);
-        }
-        route_msg_.segments.push_back(segment);
-      }
-
-      route_msg_.uuid.uuid = {209, 239, 15, 91, 197, 87, 68, 179, 62, 19, 3, 36, 111, 114, 35, 231};
-      route_pub_->publish(route_msg_);
-      pitstopFlag = false;
-      std::cout << "PIT STOP trajectory publish" << std::endl;
       break;
-    }
     default:
       break;
     }
@@ -603,7 +403,7 @@ private:
     all_lanelets = lanelet::utils::query::laneletLayer(TR_lanelet_map_ptr_);
     road_lanelets_ = lanelet::utils::query::roadLanelets(all_lanelets);
     currentLaneletId = READYLANELET;
-
+    
     RCLCPP_WARN(get_logger(), "Map load Done");
   }
 };

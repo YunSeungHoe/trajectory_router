@@ -105,7 +105,8 @@ private:
     std::vector<LongIntVec> return2DVec;
     return2DVec.reserve((vec.size() + laneletNum - 1) / laneletNum); 
     auto nowVec = vec.begin();
-    while (nowVec != vec.end()){
+    while (nowVec != vec.end())
+    {
       LongIntVec chunk;
       chunk.reserve(laneletNum);
       auto end = std::next(nowVec, laneletNum);
@@ -121,7 +122,8 @@ private:
     std::vector<std::vector<double>> return2DVec;
     return2DVec.reserve((vec.size() + laneletNum - 1) / laneletNum); 
     auto nowVec = vec.begin();
-    while (nowVec != vec.end()){
+    while (nowVec != vec.end())
+    {
       std::vector<double> chunk;
       chunk.reserve(laneletNum);
       auto end = std::next(nowVec, laneletNum);
@@ -143,7 +145,7 @@ private:
 
     for (const auto & st_llt : start_lanelets){
       currentLaneletId = st_llt.id();
-      std::cout << "id" << currentLaneletId << std::endl;
+      // std::cout << "id" << currentLaneletId << std::endl;
     }
 
     long int cnt = INITCOUNT;

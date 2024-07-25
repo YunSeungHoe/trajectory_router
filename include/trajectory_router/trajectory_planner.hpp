@@ -23,6 +23,9 @@
 #define INITKEY -1
 #define NOLANELET -1
 #define INITCOUNT 0
+#define FIRSTLANE 1
+#define SECONDLANE 2
+#define THIRDLANEIDX 2
 
 namespace trajectory_router::lanelet2
 {
