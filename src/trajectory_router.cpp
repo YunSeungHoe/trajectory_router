@@ -43,7 +43,7 @@ public:
     pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>( "/localization/pose_estimator/pose", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackPose, this, std::placeholders::_1));
     signal_sub_ = create_subscription<avante_msgs::msg::AvanteFlagSignal>( "/avante_flag_signal", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackSignal, this, std::placeholders::_1));
     sub_vector_map_ = create_subscription<HADMapBin>("/map/vector_map", rclcpp::QoS(1).transient_local(), std::bind(&TrajectoryRouter::callbackMap, this, std::placeholders::_1));
-    route_pub_= create_publisher<autoware_planning_msgs::msg::LaneletRoute>("/planning/mission_planning/route", rclcpp::QoS{1}.transient_local());
+    route_pub_= create_publisher<autoware_planning_msgs::msg::LaneletRoute>("/planning/trajectory_router/route", rclcpp::QoS{1}.transient_local());
     deceleration_pub_= create_publisher<avante_msgs::msg::DecelerationZone>("planning/deceleration_zone", rclcpp::QoS{1});
 
     this->declare_parameter<LongIntVec>("available_lanelet_id", LongIntVec({}));

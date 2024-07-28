@@ -133,7 +133,7 @@
         y: 0.0
   
     # Go를 위한 config
-    go_primitive: [30994,  37195,  33125, 25438]
+    go_primitive: [37195,  33125, 25438]
     
     go:
       position:
