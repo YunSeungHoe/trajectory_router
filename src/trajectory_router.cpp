@@ -460,7 +460,6 @@ private:
       std::cout << "NORMAL trajectory publish" << std::endl;
       break;
     }
-    // 현재 1차로로 설계했지만 이후 3차로로 변경해야 함 !!!!!!!!!!!!!!!!!!
     case TrajectoryRouter::GO:
     {
       autoware_planning_msgs::msg::LaneletRoute route_msg_;
@@ -476,7 +475,9 @@ private:
       route_msg_.goal_pose.orientation.y = go_orientation_y;
       route_msg_.goal_pose.orientation.z = go_orientation_z;  
       route_msg_.goal_pose.orientation.w = go_orientation_w;
-  
+      // 벡터 맨 앞에 요소 추가 
+      goPrimitives.insert(goPrimitives.begin(), currentLaneletId);
+
       for (const auto &lane : goPrimitives)
       {
         segment = emptySegment;
