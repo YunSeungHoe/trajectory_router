@@ -41,9 +41,9 @@ public:
     // CANSignal = TrajectoryRouter::READY;
 
     pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>( "/localization/pose_estimator/pose", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackPose, this, std::placeholders::_1));
-    signal_sub_ = create_subscription<avante_msgs::msg::AvanteFlagSignal>( "/avante_flag_signal", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackSignal, this, std::placeholders::_1));
+    signal_sub_ = create_subscription<avante_msgs::msg::AvanteFlagSignal>( "/avante_flag_signal1", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackSignal, this, std::placeholders::_1));
     sub_vector_map_ = create_subscription<HADMapBin>("/map/vector_map", rclcpp::QoS(1).transient_local(), std::bind(&TrajectoryRouter::callbackMap, this, std::placeholders::_1));
-    route_pub_= create_publisher<autoware_planning_msgs::msg::LaneletRoute>("/planning/trajectory_router/route", rclcpp::QoS{1}.transient_local());
+    route_pub_= create_publisher<autoware_planning_msgs::msg::LaneletRoute>("/planning/mission_planning/route", rclcpp::QoS{1}.transient_local());
     deceleration_pub_= create_publisher<avante_msgs::msg::DecelerationZone>("planning/deceleration_zone", rclcpp::QoS{1});
 
     this->declare_parameter<LongIntVec>("available_lanelet_id", LongIntVec({}));
@@ -65,20 +65,20 @@ public:
     this->declare_parameter<std::vector<double>>("position.x", std::vector<double>({}));
     this->declare_parameter<std::vector<double>>("position.y", std::vector<double>({}));
     this->declare_parameter<double>("position.z", double());
-    this->declare_parameter<double>("orientaion.x", double());
-    this->declare_parameter<double>("orientaion.y", double());
-    this->declare_parameter<std::vector<double>>("orientaion.z", std::vector<double>({}));
-    this->declare_parameter<std::vector<double>>("orientaion.w", std::vector<double>({}));
+    this->declare_parameter<double>("orientation.x", double());
+    this->declare_parameter<double>("orientation.y", double());
+    this->declare_parameter<std::vector<double>>("orientation.z", std::vector<double>({}));
+    this->declare_parameter<std::vector<double>>("orientation.w", std::vector<double>({}));
 
     position_x = this->get_parameter("position.x").as_double_array();
     position2D_x = setPrimitiveVector(position_x, laneNum);
     position_y = this->get_parameter("position.y").as_double_array();
     position2D_y = setPrimitiveVector(position_y, laneNum);
     position_z = this->get_parameter("position.z").as_double();
-    orientation_x = this->get_parameter("orientaion.x").as_double();
-    orientation_y = this->get_parameter("orientaion.y").as_double();
-    orientation_z = this->get_parameter("orientaion.z").as_double_array();
-    orientation_w = this->get_parameter("orientaion.w").as_double_array();
+    orientation_x = this->get_parameter("orientation.x").as_double();
+    orientation_y = this->get_parameter("orientation.y").as_double();
+    orientation_z = this->get_parameter("orientation.z").as_double_array();
+    orientation_w = this->get_parameter("orientation.w").as_double_array();
     
     this->declare_parameter<LongIntVec>("curve_primitive", LongIntVec({}));
     curvePrimitives = this->get_parameter("curve_primitive").as_integer_array();
@@ -100,18 +100,18 @@ public:
     this->declare_parameter<double>("curve.position.z", double());
     curve_position_z = this->get_parameter("curve.position.z").as_double();
 
-    this->declare_parameter<double>("curve.orientaion.x", double());
-    curve_orientation_x = this->get_parameter("curve.orientaion.x").as_double();
-    this->declare_parameter<double>("curve.orientaion.y", double());
-    curve_orientation_y = this->get_parameter("curve.orientaion.y").as_double();
-    this->declare_parameter<double>("curve_1.orientaion.z", double());
-    curve1_orientation_z = this->get_parameter("curve_1.orientaion.z").as_double();
-    this->declare_parameter<double>("curve_1.orientaion.w", double());
-    curve1_orientation_w = this->get_parameter("curve_1.orientaion.w").as_double();
-    this->declare_parameter<double>("curve_2.orientaion.z", double());
-    curve2_orientation_z = this->get_parameter("curve_2.orientaion.z").as_double();
-    this->declare_parameter<double>("curve_2.orientaion.w", double());
-    curve2_orientation_w = this->get_parameter("curve_2.orientaion.w").as_double();
+    this->declare_parameter<double>("curve.orientation.x", double());
+    curve_orientation_x = this->get_parameter("curve.orientation.x").as_double();
+    this->declare_parameter<double>("curve.orientation.y", double());
+    curve_orientation_y = this->get_parameter("curve.orientation.y").as_double();
+    this->declare_parameter<double>("curve_1.orientation.z", double());
+    curve1_orientation_z = this->get_parameter("curve_1.orientation.z").as_double();
+    this->declare_parameter<double>("curve_1.orientation.w", double());
+    curve1_orientation_w = this->get_parameter("curve_1.orientation.w").as_double();
+    this->declare_parameter<double>("curve_2.orientation.z", double());
+    curve2_orientation_z = this->get_parameter("curve_2.orientation.z").as_double();
+    this->declare_parameter<double>("curve_2.orientation.w", double());
+    curve2_orientation_w = this->get_parameter("curve_2.orientation.w").as_double();
 
     // go 
     this->declare_parameter<LongIntVec>("go_primitive", LongIntVec({}));
@@ -123,14 +123,14 @@ public:
     go_position_y = this->get_parameter("go.position.y").as_double();
     this->declare_parameter<double>("go.position.z", double());
     go_position_z = this->get_parameter("go.position.z").as_double();
-    this->declare_parameter<double>("go.orientaion.x", double());
-    go_orientation_x = this->get_parameter("go.orientaion.x").as_double();
-    this->declare_parameter<double>("go.orientaion.y", double());
-    go_orientation_y = this->get_parameter("go.orientaion.y").as_double();
-    this->declare_parameter<double>("go.orientaion.z", double());
-    go_orientation_z = this->get_parameter("go.orientaion.z").as_double();
-    this->declare_parameter<double>("go.orientaion.w", double());
-    go_orientation_w = this->get_parameter("go.orientaion.w").as_double();
+    this->declare_parameter<double>("go.orientation.x", double());
+    go_orientation_x = this->get_parameter("go.orientation.x").as_double();
+    this->declare_parameter<double>("go.orientation.y", double());
+    go_orientation_y = this->get_parameter("go.orientation.y").as_double();
+    this->declare_parameter<double>("go.orientation.z", double());
+    go_orientation_z = this->get_parameter("go.orientation.z").as_double();
+    this->declare_parameter<double>("go.orientation.w", double());
+    go_orientation_w = this->get_parameter("go.orientation.w").as_double();
 
     //pit stop
     this->declare_parameter<LongIntVec>("pitstop_primitive", LongIntVec({}));
@@ -276,7 +276,7 @@ private:
     {
     case avante_msgs::msg::AvanteFlagSignal::READY:
       canState = TrajectoryRouter::READY;
-      std::cout << "READY" << std::endl;
+      // std::cout << "READY" << std::endl;
       break;
     case avante_msgs::msg::AvanteFlagSignal::GO:
       canState = TrajectoryRouter::GO;
@@ -315,8 +315,10 @@ private:
 
     // 주도로의 lanelet id를 작게해서 획득할 필요가 있음
     for (const auto & st_llt : start_lanelets)
+    {
       currentLaneletId = st_llt.id();
-
+      // std::cout << currentLaneletId << std::endl;
+    }
     // Lanelet이 2개인 구간에서 디버깅 필요 
     // std::cout << "current lanelet ID: " << currentLaneletId << std::endl; 
     signalMutex.lock();
@@ -374,7 +376,7 @@ private:
       {
         lastLaneletId = currentLaneletId;
         lastLaneletKey = laneletKey;
-        if (pitstopFlag && laneletKey == 4)
+        if (pitstopFlag && laneletKey == 0)
         {
           pubState = TrajectoryRouter::PITSTOP;
           std::cout << "pubState is stop " << std::endl;
@@ -405,38 +407,55 @@ private:
       lastCurveState = curveState;
     }
 
+    std::cout << "5" << std::endl;
     // 상태에 따른 적절한 경로 생성 
     switch (pubState)
     {
     case TrajectoryRouter::READY: break;
     case TrajectoryRouter::NORMAL:
     {
+      std::cout << "NORMAL Start" << std::endl;
       long int row;
       long int col;
+      long int seclane;
+      seclane = 1;
+      std::cout << "6" << std::endl;
       
       row = cnt/laneNum;
       if (pitstopFlag)
       {
-        col = THIRDLANEIDX;
+        col = seclane;
       }
       else
       {
         col = desiredLane[laneletKey];        
       }
-
+      std::cout << "7" << std::endl;
+      std::cout << "laneletKey :" << laneletKey << std::endl;
+      std::cout << "cnt :" << cnt << std::endl;
+      std::cout << "row :" << row << std::endl;
+      std::cout << "col :" << col << std::endl;
       autoware_planning_msgs::msg::LaneletRoute route_msg_;
       route_msg_.header.stamp = this->get_clock()->now();
       route_msg_.header.frame_id = "map";
       route_msg_.start_pose = msg->pose;
 
+      std::cout << "x" << position2D_x[1][2] << std::endl;
+      std::cout << "y" << position2D_y[1][2] << std::endl;
+      std::cout << "here" << std::endl;
       route_msg_.goal_pose.position.x = position2D_x[row][col]; 
+      std::cout << "here1" << std::endl;
       route_msg_.goal_pose.position.y = position2D_y[row][col]; 
       route_msg_.goal_pose.position.z = position_z;
-        
+      std::cout << "here2" << std::endl;
+      
+      std::cout << "orientation_x" << orientation_x << std::endl;
       route_msg_.goal_pose.orientation.x = orientation_x;
       route_msg_.goal_pose.orientation.y = orientation_y;
       route_msg_.goal_pose.orientation.z = orientation_z[row];  
+      std::cout << "here3" << std::endl;
       route_msg_.goal_pose.orientation.w = orientation_w[row];
+      std::cout << "8" << std::endl;
 
       for (const auto &out_lane_id : currentPrimitive2DVector)
       {
@@ -452,6 +471,7 @@ private:
         }
         route_msg_.segments.push_back(segment);
       }
+      std::cout << "9" << std::endl;
 
       route_msg_.uuid.uuid = {209, 239, 15, 91, 197, 87, 68, 179, 62, 19, 3, 36, 111, 114, 35, 231};
       route_pub_->publish(route_msg_);
@@ -470,7 +490,9 @@ private:
       route_msg_.goal_pose.position.x = go_position_x; 
       route_msg_.goal_pose.position.y = go_position_y; 
       route_msg_.goal_pose.position.z = go_position_z;
-          
+      
+      std::cout << go_orientation_z << std::endl;
+      std::cout << go_orientation_w << std::endl;
       route_msg_.goal_pose.orientation.x = go_orientation_x;
       route_msg_.goal_pose.orientation.y = go_orientation_y;
       route_msg_.goal_pose.orientation.z = go_orientation_z;  
@@ -584,8 +606,8 @@ private:
       route_msg_.header.frame_id = "map";
       route_msg_.start_pose = msg->pose;
 
-      route_msg_.goal_pose.position.x = pitstop_position_x[2]; 
-      route_msg_.goal_pose.position.y = pitstop_position_y[2]; 
+      route_msg_.goal_pose.position.x = pitstop_position_x[1]; 
+      route_msg_.goal_pose.position.y = pitstop_position_y[1]; 
       route_msg_.goal_pose.position.z = pitstop_position_z;
             
       route_msg_.goal_pose.orientation.x = pitstop_orientation_x;
@@ -596,7 +618,7 @@ private:
       for (const auto &out_lane_id : pitstopPrimitive2DVector)
       {
         segment = emptySegment;
-        segment.preferred_primitive.id = out_lane_id[2];
+        segment.preferred_primitive.id = out_lane_id[1];
         segment.preferred_primitive.primitive_type = "";
         for (const auto &in_lane_id : out_lane_id)
         {
