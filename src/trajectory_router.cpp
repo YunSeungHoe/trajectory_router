@@ -13,7 +13,7 @@
 #include <trajectory_router/trajectory_route_handler.hpp>
 #include <trajectory_router/trajectory_router_plugin.hpp>
 #include <autoware_planning_msgs/msg/lanelet_route.hpp>
-#include <avante_msgs/msg/avante_flag_signal.hpp>
+#include <kiapi_msg/msg/planner_flag.hpp>
 #include <avante_msgs/msg/deceleration_zone.hpp>
 #include <mutex>
 
@@ -41,7 +41,7 @@ public:
     // CANSignal = TrajectoryRouter::READY;
 
     pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>( "/localization/pose_estimator/pose", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackPose, this, std::placeholders::_1));
-    signal_sub_ = create_subscription<avante_msgs::msg::AvanteFlagSignal>( "/avante_flag_signal1", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackSignal, this, std::placeholders::_1));
+    signal_sub_ = create_subscription<kiapi_msg::msg::PlannerFlag>( "/kiapi_flag_status", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackSignal, this, std::placeholders::_1));
     sub_vector_map_ = create_subscription<HADMapBin>("/map/vector_map", rclcpp::QoS(1).transient_local(), std::bind(&TrajectoryRouter::callbackMap, this, std::placeholders::_1));
     route_pub_= create_publisher<autoware_planning_msgs::msg::LaneletRoute>("/planning/trajectory_router/route", rclcpp::QoS{1}.transient_local());
     deceleration_pub_= create_publisher<avante_msgs::msg::DecelerationZone>("/planning/deceleration_zone", rclcpp::QoS{1});
@@ -161,7 +161,6 @@ public:
   autoware_planning_msgs::msg::LaneletSegment emptySegment;
   autoware_planning_msgs::msg::LaneletPrimitive primitive;
 
-  // avante_msgs::msg::AvanteFlagSignal receiveSignal;
   std::mutex signalMutex;
 
   std::vector<std::vector<double>> position2D_x;
@@ -231,7 +230,7 @@ public:
   // PubState CANSignal;
   
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
-  rclcpp::Subscription<avante_msgs::msg::AvanteFlagSignal>::SharedPtr signal_sub_;
+  rclcpp::Subscription<kiapi_msg::msg::PlannerFlag>::SharedPtr signal_sub_;
   rclcpp::Subscription<HADMapBin>::SharedPtr sub_vector_map_;
   rclcpp::Publisher<autoware_planning_msgs::msg::LaneletRoute>::SharedPtr route_pub_;
   rclcpp::Publisher<avante_msgs::msg::DecelerationZone>::SharedPtr deceleration_pub_;
@@ -269,31 +268,31 @@ private:
     return return2DVec;
   }
 
-  void callbackSignal(const avante_msgs::msg::AvanteFlagSignal msg)
+  void callbackSignal(const kiapi_msg::msg::PlannerFlag msg)
   {
     signalMutex.lock();
-    switch (msg.signal)
+    switch (msg.flag)
     {
-    case avante_msgs::msg::AvanteFlagSignal::READY:
+    case kiapi_msg::msg::PlannerFlag::READY:
       canState = TrajectoryRouter::READY;
       // std::cout << "READY" << std::endl;
       break;
-    case avante_msgs::msg::AvanteFlagSignal::GO:
+    case kiapi_msg::msg::PlannerFlag::GO:
       canState = TrajectoryRouter::GO;
       std::cout << "GO" << std::endl;
       break;    
-    case avante_msgs::msg::AvanteFlagSignal::SLOW_ON:
+    case kiapi_msg::msg::PlannerFlag::SLOW_ON:
       canState = TrajectoryRouter::SLOWON;
       std::cout << "SLOW_ON" << std::endl;
       break;    
-    case avante_msgs::msg::AvanteFlagSignal::SLOW_OFF:
+    case kiapi_msg::msg::PlannerFlag::SLOW_OFF:
       std::cout << "SLOW_OFF" << std::endl;
       break;    
-    case avante_msgs::msg::AvanteFlagSignal::STOP:
+    case kiapi_msg::msg::PlannerFlag::STOP:
       canState = TrajectoryRouter::STOP;
       std::cout << "STOP" << std::endl;
       break;    
-    case avante_msgs::msg::AvanteFlagSignal::PIT_STOP:
+    case kiapi_msg::msg::PlannerFlag::PIT_STOP:
       canState = TrajectoryRouter::PITSTOP;
       std::cout << "PIT_STOP" << std::endl;
       break;    
