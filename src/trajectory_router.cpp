@@ -407,7 +407,6 @@ private:
       lastCurveState = curveState;
     }
 
-    std::cout << "5" << std::endl;
     // 상태에 따른 적절한 경로 생성 
     switch (pubState)
     {
@@ -419,7 +418,6 @@ private:
       long int col;
       long int seclane;
       seclane = 1;
-      std::cout << "6" << std::endl;
       
       row = cnt/laneNum;
       if (pitstopFlag)
@@ -430,32 +428,19 @@ private:
       {
         col = desiredLane[laneletKey];        
       }
-      std::cout << "7" << std::endl;
-      std::cout << "laneletKey :" << laneletKey << std::endl;
-      std::cout << "cnt :" << cnt << std::endl;
-      std::cout << "row :" << row << std::endl;
-      std::cout << "col :" << col << std::endl;
       autoware_planning_msgs::msg::LaneletRoute route_msg_;
       route_msg_.header.stamp = this->get_clock()->now();
       route_msg_.header.frame_id = "map";
       route_msg_.start_pose = msg->pose;
 
-      std::cout << "x" << position2D_x[1][2] << std::endl;
-      std::cout << "y" << position2D_y[1][2] << std::endl;
-      std::cout << "here" << std::endl;
       route_msg_.goal_pose.position.x = position2D_x[row][col]; 
-      std::cout << "here1" << std::endl;
       route_msg_.goal_pose.position.y = position2D_y[row][col]; 
       route_msg_.goal_pose.position.z = position_z;
-      std::cout << "here2" << std::endl;
       
-      std::cout << "orientation_x" << orientation_x << std::endl;
       route_msg_.goal_pose.orientation.x = orientation_x;
       route_msg_.goal_pose.orientation.y = orientation_y;
       route_msg_.goal_pose.orientation.z = orientation_z[row];  
-      std::cout << "here3" << std::endl;
       route_msg_.goal_pose.orientation.w = orientation_w[row];
-      std::cout << "8" << std::endl;
 
       for (const auto &out_lane_id : currentPrimitive2DVector)
       {
@@ -471,7 +456,6 @@ private:
         }
         route_msg_.segments.push_back(segment);
       }
-      std::cout << "9" << std::endl;
 
       route_msg_.uuid.uuid = {209, 239, 15, 91, 197, 87, 68, 179, 62, 19, 3, 36, 111, 114, 35, 231};
       route_pub_->publish(route_msg_);

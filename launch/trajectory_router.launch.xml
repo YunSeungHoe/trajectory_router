@@ -1,5 +1,5 @@
 <launch>
-  <arg name="trajectory_table_param_path" default="$(find-pkg-share trajectory_router)/config/240720_kiapi_trajectory_table.yaml"/>
+  <arg name="trajectory_table_param_path" default="$(find-pkg-share trajectory_router)/config/trajectory_table.yaml"/>
   <node pkg="trajectory_router" exec="trajectory_router" name="trajectory_router_node" output="screen">
     <param from="$(var trajectory_table_param_path)"/>
   </node>
