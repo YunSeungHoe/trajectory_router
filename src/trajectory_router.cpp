@@ -415,17 +415,19 @@ private:
       std::cout << "NORMAL Start" << std::endl;
       long int row;
       long int col;
-      long int seclane;
-      seclane = 1;
+      long int thirdlane;
+      thirdlane = 2;
       
       row = cnt/laneNum;
       if (pitstopFlag)
       {
-        col = seclane;
+        col = thirdlane;
       }
       else
       {
-        col = desiredLane[laneletKey];        
+        col = desiredLane[laneletKey];
+        if (desiredLane[laneletKey] == thirdlane)
+          desiredLane[laneletKey] = desiredLane[laneletKey] - 1; 
       }
       autoware_planning_msgs::msg::LaneletRoute route_msg_;
       route_msg_.header.stamp = this->get_clock()->now();
@@ -589,8 +591,8 @@ private:
       route_msg_.header.frame_id = "map";
       route_msg_.start_pose = msg->pose;
 
-      route_msg_.goal_pose.position.x = pitstop_position_x[1]; 
-      route_msg_.goal_pose.position.y = pitstop_position_y[1]; 
+      route_msg_.goal_pose.position.x = pitstop_position_x[2]; 
+      route_msg_.goal_pose.position.y = pitstop_position_y[2]; 
       route_msg_.goal_pose.position.z = pitstop_position_z;
             
       route_msg_.goal_pose.orientation.x = pitstop_orientation_x;
@@ -601,7 +603,7 @@ private:
       for (const auto &out_lane_id : pitstopPrimitive2DVector)
       {
         segment = emptySegment;
-        segment.preferred_primitive.id = out_lane_id[1];
+        segment.preferred_primitive.id = out_lane_id[2];
         segment.preferred_primitive.primitive_type = "";
         for (const auto &in_lane_id : out_lane_id)
         {

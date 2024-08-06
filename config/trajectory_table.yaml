@@ -2,7 +2,7 @@
   ros__parameters:
     lane_number: 3
     primitive_number: 6
-    desired_lane: [2, 2, 2, 1, 1, 1]
+    desired_lane: [2, 2, 2, 2, 2, 2]
 
     available_lanelet_id: [24720, 25079,  25438,  
                           9213,   9688,   10163,  

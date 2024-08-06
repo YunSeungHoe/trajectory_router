@@ -4,7 +4,7 @@
     primitive_number: 4
     
     # desired_lane: [1, 1, 1, 1]
-    desired_lane: [2, 2, 2, 2]
+    desired_lane: [1, 2, 2, 2]
 
     available_lanelet_id: [
                           6039, 8012, 6025,
