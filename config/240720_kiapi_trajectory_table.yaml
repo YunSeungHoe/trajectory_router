@@ -5,6 +5,7 @@
     
     # desired_lane: [1, 1, 1, 1]
     desired_lane: [1, 2, 2, 2]
+    one_lap_lane: 3 
 
     available_lanelet_id: [
                           6039, 8012, 6025,

@@ -38,6 +38,7 @@ public:
     curveNum = INITCOUNT;
     pubState = TrajectoryRouter::READY;
     canState = TrajectoryRouter::READY;
+
     // CANSignal = TrajectoryRouter::READY;
 
     pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>( "/localization/pose_estimator/pose", rclcpp::QoS{1}, std::bind(&TrajectoryRouter::callbackPose, this, std::placeholders::_1));
@@ -54,7 +55,9 @@ public:
     laneNum = this->get_parameter("lane_number").as_int();
     this->declare_parameter<int>("primitive_number", int());
     primitiveNum = this->get_parameter("primitive_number").as_int();
-    
+    this->declare_parameter<int>("one_lap_lane", int());
+    thirdlane = this->get_parameter("one_lap_lane").as_int();
+    std::cout <<thirdlane << std::endl;
     for(int i=INITCOUNT; i<primitiveNum; i++)
     {
       this->declare_parameter<LongIntVec>("primitive_"+std::to_string(i), LongIntVec({}));
@@ -215,6 +218,7 @@ public:
   long int lastLaneletKey;
   long int curveCnt;
   long int curveNum;
+  long int thirdlane;
   int laneNum;
   int primitiveNum;
   enum PubState {READY, NORMAL, GO, STOP, PITSTOP, SLOWON, SLOWOFF};
@@ -415,20 +419,12 @@ private:
       std::cout << "NORMAL Start" << std::endl;
       long int row;
       long int col;
-      long int thirdlane;
-      thirdlane = 2;
       
       row = cnt/laneNum;
-      if (pitstopFlag)
-      {
-        col = thirdlane;
-      }
-      else
-      {
-        col = desiredLane[laneletKey];
-        if (desiredLane[laneletKey] == thirdlane)
-          desiredLane[laneletKey] = desiredLane[laneletKey] - 1; 
-      }
+      col = desiredLane[laneletKey];
+      if (desiredLane[laneletKey] == thirdlane)
+        desiredLane[laneletKey] = desiredLane[laneletKey] - 1; 
+
       autoware_planning_msgs::msg::LaneletRoute route_msg_;
       route_msg_.header.stamp = this->get_clock()->now();
       route_msg_.header.frame_id = "map";
@@ -586,13 +582,20 @@ private:
     case TrajectoryRouter::PITSTOP:
     {
       if(!pitstopFlag) break;
+
+      long int col;
+
+      col = desiredLane[laneletKey];
+      if (desiredLane[laneletKey] == thirdlane)
+        desiredLane[laneletKey] = desiredLane[laneletKey] - 1; 
+
       autoware_planning_msgs::msg::LaneletRoute route_msg_;
       route_msg_.header.stamp = this->get_clock()->now();
       route_msg_.header.frame_id = "map";
       route_msg_.start_pose = msg->pose;
 
-      route_msg_.goal_pose.position.x = pitstop_position_x[1]; 
-      route_msg_.goal_pose.position.y = pitstop_position_y[1]; 
+      route_msg_.goal_pose.position.x = pitstop_position_x[col]; 
+      route_msg_.goal_pose.position.y = pitstop_position_y[col]; 
       route_msg_.goal_pose.position.z = pitstop_position_z;
             
       route_msg_.goal_pose.orientation.x = pitstop_orientation_x;
@@ -603,7 +606,7 @@ private:
       for (const auto &out_lane_id : pitstopPrimitive2DVector)
       {
         segment = emptySegment;
-        segment.preferred_primitive.id = out_lane_id[1];
+        segment.preferred_primitive.id = out_lane_id[col];
         segment.preferred_primitive.primitive_type = "";
         for (const auto &in_lane_id : out_lane_id)
         {
